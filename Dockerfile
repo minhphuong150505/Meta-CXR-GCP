@@ -19,19 +19,25 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
  && rm -rf /var/lib/apt/lists/*
 
 # --- gcsfuse từ Google package repo ---
-RUN export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s` \
+RUN set -eux \
+ && GCSFUSE_REPO="gcsfuse-$(lsb_release -c -s)" \
+ && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+    | gpg --batch --yes --dearmor -o /usr/share/keyrings/cloud.google.gpg \
  && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt $GCSFUSE_REPO main" \
     > /etc/apt/sources.list.d/gcsfuse.list \
- && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
-    | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg \
  && apt-get update && apt-get install -y --no-install-recommends gcsfuse \
  && rm -rf /var/lib/apt/lists/*
 
 # --- Python deps ---
+# Pin pip<24.1 vì pytorch_lightning==1.6.5 (transitively required) có metadata
+# invalid mà pip ≥24.1 reject. KHÔNG dùng `pip install --upgrade pip` (sẽ bump
+# pip lên latest và vỡ).
 WORKDIR ${WORKDIR}
 COPY requirements.txt .
-RUN pip install --upgrade pip \
- && pip install -r requirements.txt
+RUN pip install "pip<24.1" \
+ && pip install --no-cache-dir -r requirements.txt \
+ && python -m spacy download en_core_web_sm \
+ && python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('punkt_tab', quiet=True)"
 
 # --- Copy repo (model code + scripts + configs + notebook) ---
 COPY . ${WORKDIR}
