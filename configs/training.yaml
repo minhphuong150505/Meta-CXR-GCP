@@ -1,0 +1,63 @@
+# Mirror pretraining/configs/mimic_cxr_2gpu.yaml, output_dir đổi sang local on VM.
+# Notebook đọc YAML này (qua papermill params hoặc trực tiếp); KHÔNG hardcode trong code.
+
+model:
+  arch: blip2
+  model_type: pretrain
+  load_pretrained: False
+  freeze_vit: True
+  vit_model: biovil
+  vit_model_cls: [pubmedclip]
+  num_query_token: 32
+  max_txt_len: 256
+  mhcac:
+    threshold_path: "threshold.json"
+
+datasets:
+  mimic_cxr:
+    vis_processor:
+      train: {name: "blip2_image_train", image_size: 448}
+      eval:  {name: "blip_image_eval",   image_size: 448}
+    text_processor:
+      train: {name: "my_blip_caption", prompt: ''}
+      eval:  {name: "my_blip_caption", prompt: ''}
+
+run:
+  task: image_text_pretrain_eval
+  project_name: meta-cxr
+  wandb_entity: ${oc.env:WANDB_ENTITY,}
+  run_name: ${oc.env:RUN_ID,mimic_cxr_2gpu_stage1}
+
+  lr_sched: "linear_warmup_cosine_lr"
+  init_lr_cls: 2e-4
+  init_lr_q:   2e-4
+  init_lr:     2e-4
+  min_lr:      1e-5
+  warmup_lr:   1e-6
+
+  weight_decay: 0.02
+  max_epoch: 10
+  save_freq: 3
+  batch_size_train: 8
+  batch_size_eval:  8
+  num_workers: 2
+  warmup_steps: 1000
+  accum_grad_iters: 4
+
+  max_len: 256
+  min_len: 8
+  num_beams: 1
+
+  seed: 42
+  # On-VM scratch; gcs_checkpoint.py upload từ đây lên bucket.
+  output_dir: /workspace/output
+
+  amp: True
+  evaluate: False
+  train_splits: ["train"]
+  valid_splits: ["val"]
+
+  device: "cuda"
+  world_size: 2
+  dist_url: "env://"
+  distributed: True

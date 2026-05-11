@@ -1,0 +1,28 @@
+# Data layout. gcsfuse mount toàn bucket vào mount_point.
+bucket: ${oc.env:GCS_BUCKET,mimic-cxr-jpg-data}
+mount_point: /mnt/gcs-data
+
+paths:
+  # Đường dẫn anh dùng trong notebook (sau khi gcsfuse mount).
+  data_root:           /mnt/gcs-data
+  mimic_cxr_jpg_root:  /mnt/gcs-data
+  images_root:         /mnt/gcs-data/p10
+  reports_root:        /mnt/gcs-data/report_p10
+
+  # CSVs (flat ở root bucket).
+  split_csv:           /mnt/gcs-data/mimic-cxr-2.0.0-split.csv
+  chexpert_csv:        /mnt/gcs-data/mimic-cxr-2.0.0-chexpert.csv
+  metadata_csv:        /mnt/gcs-data/mimic-cxr-2.0.0-metadata.csv
+  negbio_csv:          /mnt/gcs-data/mimic-cxr-2.0.0-negbio.csv
+  reports_csv:         /mnt/gcs-data/mimic_cxr_cleaned.csv
+  test_labeled_csv:    /mnt/gcs-data/mimic-cxr-2.1.0-test-set-labeled.csv
+
+required_csvs:
+  - mimic-cxr-2.0.0-split.csv
+  - mimic-cxr-2.0.0-chexpert.csv
+  - mimic-cxr-2.0.0-metadata.csv
+  - mimic_cxr_cleaned.csv
+
+gcsfuse:
+  # --implicit-dirs để gcsfuse expose "thư mục ảo" (object prefixes) như folder.
+  flags: "--implicit-dirs --file-mode=644 --dir-mode=755"

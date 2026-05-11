@@ -1,0 +1,25 @@
+# Checkpoint lifecycle. Áp dụng cho runner_base.py output_dir → GCS upload.
+local_dir: /workspace/output           # = configs/training.yaml run.output_dir
+gcs_prefix: checkpoints                # gs://<bucket>/checkpoints/<run_id>/...
+
+# Loại file:
+#   best.pth    : overwrite, GIỮ VĨNH VIỄN trên GCS, KHÔNG bao giờ xoá.
+#   last.pth    : overwrite, dùng để resume liên tục.
+#   epoch_N.pth : rolling — chỉ giữ N file mới nhất (an toàn khi spot bị evict giữa epoch).
+keep_last_n_epoch_ckpts: 5
+preserve_files:
+  - checkpoint_best.pth
+  - checkpoint_last.pth
+
+upload:
+  # gsutil cp + stat-verify TRƯỚC khi rolling-delete local cũ.
+  verify_after_upload: true
+  # Force-flush ckpt hiện tại trong N giây khi nhận SIGTERM (spot eviction = ~30s grace).
+  sigterm_flush_seconds: 25
+
+resume:
+  # Khi script train.sh start: tìm theo thứ tự ưu tiên này trên GCS.
+  prefer_order:
+    - checkpoint_best.pth      # tiết kiệm thời gian như user request
+    - checkpoint_last.pth
+  # Override CLI: --resume-from <path>

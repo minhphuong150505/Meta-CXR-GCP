@@ -1,0 +1,56 @@
+# Secrets / credentials
+.env
+.env.local
+*.json
+!threshold.json
+!**/package.json
+!**/package-lock.json
+*-credentials*
+*service-account*.json
+gcloud-key*.json
+
+# Data
+report_p10/
+data/
+*.csv
+*.parquet
+mimic-cxr-*.csv
+
+# Checkpoints / models
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+output/
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+notebooks/output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker
+.docker/
+
+# W&B
+wandb/

@@ -1,0 +1,43 @@
+# Base: GCP Deep Learning image với CUDA 12.1 + PyTorch — sẵn cuDNN, NCCL, gcloud, gsutil.
+# Tag pin theo cu121 để khớp T4 driver trên VM image family common-cu121-debian-11.
+FROM gcr.io/deeplearning-platform-release/pytorch-gpu.2-1.py310:latest
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    WORKDIR=/workspace/Meta-CXR-GCP \
+    JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre \
+    PATH=/usr/lib/jvm/java-8-openjdk-amd64/jre/bin:${PATH}
+
+# --- OS deps ---
+# OpenJDK 8 cho CheXpert labeler; fuse cho gcsfuse; lsb-release cho Cloud SDK apt key.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openjdk-8-jre-headless \
+    fuse \
+    curl gnupg lsb-release ca-certificates \
+    git tini \
+ && rm -rf /var/lib/apt/lists/*
+
+# --- gcsfuse từ Google package repo ---
+RUN export GCSFUSE_REPO=gcsfuse-`lsb_release -c -s` \
+ && echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt $GCSFUSE_REPO main" \
+    > /etc/apt/sources.list.d/gcsfuse.list \
+ && curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
+    | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg \
+ && apt-get update && apt-get install -y --no-install-recommends gcsfuse \
+ && rm -rf /var/lib/apt/lists/*
+
+# --- Python deps ---
+WORKDIR ${WORKDIR}
+COPY requirements.txt .
+RUN pip install --upgrade pip \
+ && pip install -r requirements.txt
+
+# --- Copy repo (model code + scripts + configs + notebook) ---
+COPY . ${WORKDIR}
+
+# --- Runtime defaults ---
+EXPOSE 8888
+ENTRYPOINT ["/usr/bin/tini", "--"]
+# Default = drop into bash; scripts/04_train.sh override với papermill command.
+CMD ["/bin/bash"]

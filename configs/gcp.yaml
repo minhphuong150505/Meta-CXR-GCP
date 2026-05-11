@@ -1,0 +1,36 @@
+# GCP environment. Sensitive bits stay in .env; this file is committed.
+project_id: ${oc.env:GCP_PROJECT_ID,mimic-cxr-jpg-491409}
+region:     ${oc.env:GCP_REGION,us-central1}
+# Zone fallback order used by 03_create_vm.sh khi spot capacity hết.
+zones:
+  - ${oc.env:GCP_ZONE,us-central1-a}
+  - us-central1-b
+  - us-central1-c
+  - us-central1-f
+
+vm:
+  name:          ${oc.env:VM_NAME,meta-cxr-train}
+  machine_type:  ${oc.env:VM_MACHINE_TYPE,n1-standard-8}
+  gpu_type:      ${oc.env:VM_GPU_TYPE,nvidia-tesla-t4}
+  gpu_count:     ${oc.decode:${oc.env:VM_GPU_COUNT,2}}
+  disk_size_gb:  ${oc.decode:${oc.env:VM_DISK_SIZE_GB,200}}
+  image_family:  ${oc.env:VM_IMAGE_FAMILY,common-cu121-debian-11}
+  image_project: ${oc.env:VM_IMAGE_PROJECT,deeplearning-platform-release}
+  spot: true
+  # Auto-shutdown sau khi training script return (do scripts/04_train.sh trigger).
+  auto_stop: true
+
+artifact_registry:
+  repo:       ${oc.env:ARTIFACT_REPO,meta-cxr}
+  image:      ${oc.env:DOCKER_IMAGE,meta-cxr-gcp}
+  tag:        ${oc.env:DOCKER_TAG,latest}
+
+service_account:
+  name:  ${oc.env:SERVICE_ACCOUNT_NAME,meta-cxr-training}
+  email: ${oc.env:SERVICE_ACCOUNT_EMAIL,meta-cxr-training@mimic-cxr-jpg-491409.iam.gserviceaccount.com}
+  # Tối thiểu roles cần: GCS RW + Artifact Registry read + logging.
+  roles:
+    - roles/storage.objectAdmin
+    - roles/artifactregistry.reader
+    - roles/logging.logWriter
+    - roles/monitoring.metricWriter
